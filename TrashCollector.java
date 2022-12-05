@@ -82,8 +82,8 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		itemImages[9] = loadImage("muffin.png"); // Compost
 		itemImages[10] = loadImage("bananana.png"); // Compost
 		itemImages[11] = loadImage("wet_aluminum.png");
-		itemImages[12] = loadImage("aluminum.png");
-		itemImages[13] = loadImage("wet_plastic.png");
+		itemImages[12] = loadImage("wet_plastic.png");
+		itemImages[13] = loadImage("aluminum.png");
 		itemImages[14] = loadImage("plastic.png");
 
 		createNewGame();
@@ -114,7 +114,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
                     scheduler.shutdown();
                 }
 
-                if (countdownStarter % 5 == 0) {
+                if (countdownStarter % 3 == 0) {
                 	spawn(countdownStarter);
                 }
 
@@ -142,8 +142,12 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		int item_index = (int)(Math.random() * 11);
 
 		boolean clean = true;
+		Image wetImage = null;
+		Image cleanImage = null;
 		if (item_index == 2 || item_index == 3)  {
 			clean = false;
+			wetImage = itemImages[item_index + 9];
+			cleanImage = itemImages[item_index + 11];
 		}
 
 		Dispose disposeType = Dispose.COMPOST;
@@ -153,7 +157,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 			disposeType = Dispose.TRASH;
 		}
 
-		board[i][j] = new Block(itemImages[item_index], time, clean, disposeType);
+		board[i][j] = new Block(itemImages[item_index], time, clean, disposeType, wetImage, cleanImage);
 		frame.repaint();
 	}
 
@@ -170,31 +174,57 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 			for (int j = 0; j < WIDTH; j++) {
 				if (board[i][j].getMoveable() == true) {
 					int r = -1;
-					int c = -1;
+					int c = 9;
 					if (board[i][j].getOrientation() == UP_VALUE && i != 0) {
 						r = i - 1;
 						c = j;
-					} else if (board[i][j].getOrientation() == DOWN_VALUE && i != 4) {
+					} else if (board[i][j].getOrientation() == DOWN_VALUE && i != HEIGHT - 1) {
 						r = i + 1;
 						c = j;
 					} else if (board[i][j].getOrientation() == LEFT_VALUE && j != 0) {
 						r = i;
 						c = j - 1;
-					} else if (board[i][j].getOrientation() == RIGHT_VALUE && j < 8) {
+					} else if (board[i][j].getOrientation() == RIGHT_VALUE && j < WIDTH - 1) {
 						r = i;
 						c = j + 1;
 					}
 
-					if (r != -1 && board[r][c].getImage() != null) { // Grab an item
+					if (r == 0 && c == WIDTH - 1 && !inventory.getClean()) { // Wash an item
+						inventory.setClean(true);
+						inventory.setDry(false);
+						inventory.setImage(inventory.getWetImage());
+					} else if (r == 1 && c == WIDTH - 1 && !inventory.getDry()) { // Dry an item
+						inventory.setDry(true);
+						inventory.setImage(inventory.getCleanImage());
+					} else if (r == 2 && c == WIDTH - 1 && inventory.getImage() != null) { // Trash an item
+						if (inventory.getDisposeType() != Dispose.TRASH) {
+							inventory.setScore(-100);
+						}
+						scoreboard += inventory.getScore();
+						inventory = new Block(null, false);
+					} else if (r == 3 && c == WIDTH - 1 && inventory.getImage() != null) { // Recycle an item
+						if (inventory.getDisposeType() != Dispose.RECYCLE || !inventory.getClean() || !inventory.getDry()) {
+							inventory.setScore(-100);
+						}
+						scoreboard += inventory.getScore();
+						inventory = new Block(null, false);
+					} else if (r == 4 && c == WIDTH - 1 && inventory.getImage() != null) { // Compost an item
+						if (inventory.getDisposeType() != Dispose.COMPOST) {
+							inventory.setScore(-100);
+						}
+						scoreboard += inventory.getScore();
+						inventory = new Block(null, false);
+					} else if (c != 9 && board[r][c].getImage() != null) { // Grab an item
 						Block old_inventory = inventory;
 						inventory = board[r][c];
 						board[r][c] = old_inventory;
-						frame.repaint();
 					} else if (inventory.getImage() != null && board[r][c].getImage() == null) { // Drop an item
 						board[r][c] = inventory;
 						inventory = new Block(null, false);
-						frame.repaint();
 					}
+
+					System.out.println("Score: " + scoreboard);
+					frame.repaint();
 					return;
 				}
 			}

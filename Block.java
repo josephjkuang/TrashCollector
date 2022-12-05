@@ -5,6 +5,8 @@ import java.lang.Math;
 public class Block {
 	private int score;
 	private Image image;
+	private Image wetImage;
+	private Image cleanImage;
 	private boolean moveable;
 	private boolean grabeable;
 	private int spawnTime;
@@ -22,7 +24,9 @@ public class Block {
 		clean = true;
 		dry = true;
 		disposeType = Dispose.NONE;
-		this.orientation = 2;
+		orientation = 2;
+		wetImage = null;
+		cleanImage = null;
 	}
 
 	public Block(Image image, boolean moveable) {
@@ -35,9 +39,11 @@ public class Block {
 		this.dry = true;
 		this.disposeType = Dispose.NONE;
 		this.orientation = 2;
+		this.wetImage = null;
+		this.cleanImage = null;
 	}
 
-	public Block(Image image, int spawnTime, boolean clean, Dispose disposeType) {
+	public Block(Image image, int spawnTime, boolean clean, Dispose disposeType, Image wetImage, Image cleanImage) {
 		this.score = 100;
 		this.image = image;
 		this.moveable = false;
@@ -47,6 +53,8 @@ public class Block {
 		this.dry = true;
 		this.disposeType = disposeType;
 		this.orientation = 2;
+		this.wetImage = wetImage;
+		this.cleanImage = cleanImage;
 	}
 
 	public void setScore(int score) {
@@ -136,5 +144,13 @@ public class Block {
 
 	public int getOrientation() {
 		return orientation;
+	}
+
+	public Image getWetImage() {
+		return wetImage;
+	}
+
+	public Image getCleanImage() {
+		return cleanImage;
 	}
 }
