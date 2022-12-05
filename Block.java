@@ -1,5 +1,6 @@
 import java.awt.image.BufferedImage;
 import java.awt.Image;
+import java.lang.Math;
 
 public class Block {
 	private int score;
@@ -11,13 +12,6 @@ public class Block {
 	private boolean dry;
 	private Dispose disposeType;
 	private int orientation;
-
-	enum Dispose {
-		TRASH,
-		RECYCLE,
-		COMPOST,
-		NONE
-	}
 
 	public Block() {
 		score = 0;
@@ -61,6 +55,13 @@ public class Block {
 
 	public int getScore() {
 		return score;
+	}
+
+	public void decay(int time) {
+		int bufferTime = time + 5; // Give users a 5 seconds to pick up garbage
+		if (bufferTime < spawnTime) {
+			this.score = Math.max(100 - 10 * (spawnTime - bufferTime), 10);
+		}
 	}
 
 	public void setImage(Image image) {

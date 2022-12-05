@@ -69,17 +69,17 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		outlineImage = loadImage("yellow.png");
 
 		itemImages = new Image[15];
-		itemImages[0] = loadImage("water.png");
-		itemImages[1] = loadImage("soda.png");
-		itemImages[2] = loadImage("aluminum.png");
-		itemImages[3] = loadImage("plastic.png");
-		itemImages[4] = loadImage("straw.png");
-		itemImages[5] = loadImage("ketchup.png");
-		itemImages[6] = loadImage("chinese.png");
-		itemImages[7] = loadImage("black.png");
-		itemImages[8] = loadImage("pizza.png");
-		itemImages[9] = loadImage("muffin.png");
-		itemImages[10] = loadImage("bananana.png");
+		itemImages[0] = loadImage("water.png"); // Recycle
+		itemImages[1] = loadImage("soda.webp"); // Recycle
+		itemImages[2] = loadImage("aluminum.png"); // Recycle + Wash
+		itemImages[3] = loadImage("plastic.png"); // Recycle + Wash
+		itemImages[4] = loadImage("straw.png"); // Garbage
+		itemImages[5] = loadImage("ketchup.png"); // Garbage
+		itemImages[6] = loadImage("chinese.png"); // Garbage
+		itemImages[7] = loadImage("black.png"); // Garbage
+		itemImages[8] = loadImage("pizza.png"); // Compost
+		itemImages[9] = loadImage("muffin.png"); // Compost
+		itemImages[10] = loadImage("bananana.png"); // Compost
 		itemImages[11] = loadImage("wet_aluminum.png");
 		itemImages[12] = loadImage("dirty_aluminum.png");
 		itemImages[13] = loadImage("wet_plastic.png");
@@ -106,6 +106,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 
                 System.out.println(countdownStarter);
                 countdownStarter--;
+                updateScore(countdownStarter);
 
                 if (countdownStarter < 0) {
                     System.out.println("Timer Over!");
@@ -113,16 +114,74 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
                 }
 
                 if (countdownStarter % 5 == 0) {
-                	int number = (int)(Math.random() * (WIDTH - 1) * HEIGHT); // Random Space on the Board
-					int i = number / (WIDTH - 1);
-					int j = number % (WIDTH - 1);
-					int item_index = (int)(Math.random() * 11);
-
-					board[i][j] = new Block(itemImages[item_index], false);
+                	spawn(countdownStarter);
                 }
             }
         };
         scheduler.scheduleAtFixedRate(runnable, 0, 1, SECONDS);
+	}
+
+	public void spawn(int time) { // Spawn items randomly
+		int i, j;
+		while (true) {
+			int number = (int)(Math.random() * (WIDTH - 1) * HEIGHT); // Random Space on the Board
+			i = number / (WIDTH - 1);
+			j = number % (WIDTH - 1);
+
+			if (board[i][j].getImage() == null) {
+				break;
+			}
+		}
+		
+		int item_index = (int)(Math.random() * 11);
+
+		boolean clean = true;
+		if (item_index == 2 || item_index == 3)  {
+			clean = false;
+		}
+
+		Dispose disposeType = Dispose.COMPOST;
+		if (item_index <= 3) {
+			disposeType = Dispose.RECYCLE;
+		} else if (item_index <= 7) {
+			disposeType = Dispose.TRASH;
+		}
+
+		board[i][j] = new Block(itemImages[item_index], time, clean, disposeType);
+		frame.repaint();
+	}
+
+	public void updateScore(int time) {
+		for (int i = 0; i < HEIGHT; i++) {
+			for (int j = 0; j < WIDTH; j++) {
+				board[i][j].decay(time);
+			}
+		}
+	}
+
+	public void grab() {
+		for (int i = 0; i < HEIGHT; i++) {
+			for (int j = 0; j < WIDTH; j++) {
+				if (board[i][j].getMoveable() == true) {
+					if (board[i][j].getOrientation() == UP_VALUE && i != 0) {
+						inventory.add(board[i - 1][j]);
+						board[i - 1][j] = new Block(null, false);
+					} else if (board[i][j].getOrientation() == DOWN_VALUE && i != 4) {
+						inventory.add(board[i + 1][j]);
+						board[i + 1][j] = new Block(null, false);
+					} else if (board[i][j].getOrientation() == LEFT_VALUE && j != 0) {
+						inventory.add(board[i][j - 1]);
+						board[i][j - 1] = new Block(null, false);
+					} else if (board[i][j].getOrientation() == RIGHT_VALUE && j < 8) {
+						inventory.add(board[i][j + 1]);
+						board[i][j + 1] = new Block(null, false);
+					}
+					frame.repaint();
+					System.out.println(inventory.size());
+					return;
+				}
+			}
+		}
 	}
 
 	public static void createNewGame() { // Sets the Board to be Initially Empty
@@ -193,7 +252,8 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 	        } else if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) { // Moving Left
 	            direction = LEFT_VALUE;
 	        } else if (e.getKeyCode() == GRAB_VALUE) {
-	        	System.out.println("Space");
+	        	grab();
+	        	return;
 	        } else if(e.getKeyCode() == RESTART_VALUE) {
 	        	endgame();
 	        	return;
