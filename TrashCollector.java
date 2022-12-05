@@ -32,6 +32,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 
 	private static int scoreboard;
 	private static boolean reset;
+	private static boolean correctBin;
 	private static Block inventory;
 
 	private static int UP_VALUE = 0;
@@ -43,6 +44,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 
 	private static int WIDTH = 10;
 	private static int HEIGHT = 5;
+	private static int TIME_LENGTH = 120;
 
 	private static int BOX_DIMENSION = 100;
 	private static int PADDING = 10;
@@ -56,6 +58,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		frame.addKeyListener(this);
 		scoreboard = 0;
 		reset = false;
+		correctBin = true;
 	}
 
 	public static void main(String[] args) { // Main Method that Starts the Game
@@ -101,7 +104,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
         final Runnable runnable = new Runnable() {
-            int countdownStarter = 20;
+            int countdownStarter = TIME_LENGTH;
 
             public void run() {
 
@@ -114,12 +117,12 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
                     scheduler.shutdown();
                 }
 
-                if (countdownStarter % 3 == 0) {
+                if (countdownStarter % 4 == 0) {
                 	spawn(countdownStarter);
                 }
 
                 if (reset) {
-                	countdownStarter = 20;
+                	countdownStarter = TIME_LENGTH;
                 	reset = false;
                 }
             }
@@ -198,21 +201,30 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 						inventory.setImage(inventory.getCleanImage());
 					} else if (r == 2 && c == WIDTH - 1 && inventory.getImage() != null) { // Trash an item
 						if (inventory.getDisposeType() != Dispose.TRASH) {
-							inventory.setScore(-100);
+							scoreboard -= 100;
+							correctBin = false;
+						} else {
+							scoreboard += inventory.getScore();
+							correctBin = true;
 						}
-						scoreboard += inventory.getScore();
 						inventory = new Block(null, false);
 					} else if (r == 3 && c == WIDTH - 1 && inventory.getImage() != null) { // Recycle an item
 						if (inventory.getDisposeType() != Dispose.RECYCLE || !inventory.getClean() || !inventory.getDry()) {
-							inventory.setScore(-100);
+							scoreboard -= 100;
+							correctBin = false;
+						} else {
+							scoreboard += inventory.getScore();
+							correctBin = true;
 						}
-						scoreboard += inventory.getScore();
 						inventory = new Block(null, false);
 					} else if (r == 4 && c == WIDTH - 1 && inventory.getImage() != null) { // Compost an item
 						if (inventory.getDisposeType() != Dispose.COMPOST) {
-							inventory.setScore(-100);
+							scoreboard -= 100;
+							correctBin = false;
+						} else {
+							scoreboard += inventory.getScore();
+							correctBin = true;
 						}
-						scoreboard += inventory.getScore();
 						inventory = new Block(null, false);
 					} else if (c != 9 && board[r][c].getImage() != null) { // Grab an item
 						Block old_inventory = inventory;
@@ -341,6 +353,15 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 
 	public void paintComponent(Graphics g) {
 		Graphics2D gui = (Graphics2D) g;
+
+		g.setFont(new Font("Serif", Font.PLAIN, 28));
+		if (correctBin) {
+			g.setColor(Color.BLACK);
+		} else {
+			g.setColor(Color.RED);
+		}
+		String textToWrite = "Score: " + scoreboard; 
+		g.drawString(textToWrite, (WIDTH / 2) * BOX_DIMENSION + MARGIN / 2, MARGIN - PADDING);
 
 		gui.setColor(Color.LIGHT_GRAY); // Board
 		gui.fillRect(BOX_DIMENSION, BOX_DIMENSION, WIDTH * BOX_DIMENSION, HEIGHT * BOX_DIMENSION); 
