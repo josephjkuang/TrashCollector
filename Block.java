@@ -123,7 +123,7 @@ public class Block {
 		this.disposeType = disposeType;
 	}
 
-	public Dispose getDisposeType(Dispose disposeType) {
+	public Dispose getDisposeType() {
 		return disposeType;
 	}
 

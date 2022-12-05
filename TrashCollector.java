@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 import java.applet.Applet;
 import java.lang.Math;
 import java.util.concurrent.*;
-import java.util.ArrayList;
 import java.util.Date;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -28,17 +27,18 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 	private static Image tableImage;
 	private static Image towelImage;
 	private static Image outlineImage;
+	private static Image inventoryImage;
 	private static Image[] itemImages;
 
 	private static int scoreboard;
 	private static boolean reset;
-	private static ArrayList<Block> inventory;
+	private static Block inventory;
 
 	private static int UP_VALUE = 0;
 	private static int RIGHT_VALUE = 1;
 	private static int DOWN_VALUE = 2;
 	private static int LEFT_VALUE = 3;
-	private static int GRAB_VALUE = 32;
+	private static int INTERACT_VALUE = 32;
 	private static int RESTART_VALUE = 82;
 
 	private static int WIDTH = 10;
@@ -67,12 +67,13 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		tableImage = loadImage("table.png");
 		towelImage = loadImage("towel.png");
 		outlineImage = loadImage("yellow.png");
+		inventoryImage = loadImage("inventory.png");
 
 		itemImages = new Image[15];
 		itemImages[0] = loadImage("water.png"); // Recycle
-		itemImages[1] = loadImage("soda.webp"); // Recycle
-		itemImages[2] = loadImage("aluminum.png"); // Recycle + Wash
-		itemImages[3] = loadImage("plastic.png"); // Recycle + Wash
+		itemImages[1] = loadImage("soda.png"); // Recycle
+		itemImages[2] = loadImage("dirty_aluminum.png"); // Recycle + Wash
+		itemImages[3] = loadImage("dirty_plastic.png"); // Recycle + Wash
 		itemImages[4] = loadImage("straw.png"); // Garbage
 		itemImages[5] = loadImage("ketchup.png"); // Garbage
 		itemImages[6] = loadImage("chinese.png"); // Garbage
@@ -81,9 +82,9 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		itemImages[9] = loadImage("muffin.png"); // Compost
 		itemImages[10] = loadImage("bananana.png"); // Compost
 		itemImages[11] = loadImage("wet_aluminum.png");
-		itemImages[12] = loadImage("dirty_aluminum.png");
+		itemImages[12] = loadImage("aluminum.png");
 		itemImages[13] = loadImage("wet_plastic.png");
-		itemImages[14] = loadImage("dirty_plastic.png");
+		itemImages[14] = loadImage("plastic.png");
 
 		createNewGame();
 		setBoard();
@@ -115,6 +116,11 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 
                 if (countdownStarter % 5 == 0) {
                 	spawn(countdownStarter);
+                }
+
+                if (reset) {
+                	countdownStarter = 20;
+                	reset = false;
                 }
             }
         };
@@ -159,25 +165,36 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		}
 	}
 
-	public void grab() {
+	public void interact() {
 		for (int i = 0; i < HEIGHT; i++) {
 			for (int j = 0; j < WIDTH; j++) {
 				if (board[i][j].getMoveable() == true) {
+					int r = -1;
+					int c = -1;
 					if (board[i][j].getOrientation() == UP_VALUE && i != 0) {
-						inventory.add(board[i - 1][j]);
-						board[i - 1][j] = new Block(null, false);
+						r = i - 1;
+						c = j;
 					} else if (board[i][j].getOrientation() == DOWN_VALUE && i != 4) {
-						inventory.add(board[i + 1][j]);
-						board[i + 1][j] = new Block(null, false);
+						r = i + 1;
+						c = j;
 					} else if (board[i][j].getOrientation() == LEFT_VALUE && j != 0) {
-						inventory.add(board[i][j - 1]);
-						board[i][j - 1] = new Block(null, false);
+						r = i;
+						c = j - 1;
 					} else if (board[i][j].getOrientation() == RIGHT_VALUE && j < 8) {
-						inventory.add(board[i][j + 1]);
-						board[i][j + 1] = new Block(null, false);
+						r = i;
+						c = j + 1;
 					}
-					frame.repaint();
-					System.out.println(inventory.size());
+
+					if (r != -1 && board[r][c].getImage() != null) { // Grab an item
+						Block old_inventory = inventory;
+						inventory = board[r][c];
+						board[r][c] = old_inventory;
+						frame.repaint();
+					} else if (inventory.getImage() != null && board[r][c].getImage() == null) { // Drop an item
+						board[r][c] = inventory;
+						inventory = new Block(null, false);
+						frame.repaint();
+					}
 					return;
 				}
 			}
@@ -185,7 +202,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 	}
 
 	public static void createNewGame() { // Sets the Board to be Initially Empty
-		board = new Block [HEIGHT][WIDTH];
+		board = new Block[HEIGHT][WIDTH];
 		Block empty = new Block(null, false);
 
 		for(int i = 0; i < HEIGHT; i++) {
@@ -204,7 +221,7 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 			frame.getContentPane().add(gui);
 		}
 
-		inventory = new ArrayList<Block>();
+		inventory = new Block(null, false);
 	}
 
 	public static void printBoard() { // Prints Board into Terminal
@@ -251,8 +268,9 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 	            direction = DOWN_VALUE;
 	        } else if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) { // Moving Left
 	            direction = LEFT_VALUE;
-	        } else if (e.getKeyCode() == GRAB_VALUE) {
-	        	grab();
+	        } else if (e.getKeyCode() == INTERACT_VALUE) {
+	        	interact();
+	        	listen = false;
 	        	return;
 	        } else if(e.getKeyCode() == RESTART_VALUE) {
 	        	endgame();
@@ -304,6 +322,9 @@ public class TrashCollector extends JPanel implements KeyListener, ActionListene
 		for(int c = MARGIN; c <= HEIGHT * BOX_DIMENSION + MARGIN; c = c + BOX_DIMENSION) {
 			gui.fillRect(BOX_DIMENSION, c, WIDTH * BOX_DIMENSION + PADDING, PADDING);
 		}
+
+		gui.drawImage(inventoryImage, 1150, 225, 200, 200, null);
+		gui.drawImage(inventory.getImage(), 1200, 320, BOX_DIMENSION - PADDING, BOX_DIMENSION - PADDING, null);
 
 		for(int r = 0; r < HEIGHT; r++ ) { // Blocks
 			for(int c = 0; c < WIDTH; c++) {
